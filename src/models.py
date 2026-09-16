@@ -2,13 +2,16 @@
 Модуль описания ORM-моделей.
 Задает физическую структуру таблиц внутри базы данных на жестком диске.
 """
-from sqlalchemy.orm import Mapped, mapped_column
+
 from sqlalchemy import String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
 
+
 class Recipe(Base):
     """Таблица рецептов кулинарной книги."""
+
     __tablename__ = "recipes"
 
     id: Mapped[int] = mapped_column(primary_key=True)

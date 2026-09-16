@@ -2,15 +2,16 @@
 Главный модуль приложения.
 Запускает сервер FastAPI, управляет его жизненным циклом и обрабатывает HTTP-запросы.
 """
-from typing import List
-from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException
+from contextlib import asynccontextmanager
+from typing import List
+
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database import engine, async_session_factory
 from src import models, schemas
+from src.database import async_session_factory, engine
 
 
 @asynccontextmanager
@@ -33,8 +34,7 @@ async def get_db_session():
 
 @app.post("/recipes", response_model=schemas.RecipeDetailOut)
 async def create_recipe(
-        recipe: schemas.RecipeCreate,
-        db: AsyncSession = Depends(get_db_session)
+    recipe: schemas.RecipeCreate, db: AsyncSession = Depends(get_db_session)
 ) -> models.Recipe:
     """Создает новый рецепт в кулинарной книге."""
     new_recipe = models.Recipe(**recipe.model_dump())
@@ -46,26 +46,24 @@ async def create_recipe(
 
 @app.get("/recipes", response_model=List[schemas.RecipeListOut])
 async def get_all_recipes(
-        db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
 ) -> List[models.Recipe]:
     """Возвращает список всех рецептов с двухуровневой сортировкой."""
     statement = select(models.Recipe).order_by(
-        models.Recipe.views_count.desc(),
-        models.Recipe.cooking_time
+        models.Recipe.views_count.desc(), models.Recipe.cooking_time
     )
     result = await db.execute(statement)
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 @app.get("/recipes/{recipe_id}", response_model=schemas.RecipeDetailOut)
 async def get_recipe_by_id(
-        recipe_id: int,
-        db: AsyncSession = Depends(get_db_session)
+    recipe_id: int, db: AsyncSession = Depends(get_db_session)
 ) -> models.Recipe:
     """Возвращает детальную инфу рецепта по ID и увеличивает счетчик просмотров на +1."""
-    recipe = (await db.execute(
-        select(models.Recipe).where(models.Recipe.id == recipe_id)
-    )).scalar_one_or_none()
+    recipe = (
+        await db.execute(select(models.Recipe).where(models.Recipe.id == recipe_id))
+    ).scalar_one_or_none()
 
     if recipe is None:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
